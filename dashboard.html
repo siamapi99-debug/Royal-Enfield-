@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexa Elite | Advanced Control Panel</title>
+    <style>
+        :root {
+            --primary-bg: #0f172a;
+            --panel-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent-color: #3b82f6;
+            --danger-color: #ef4444;
+        }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            background-color: var(--panel-bg);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent-color);
+        }
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .device-info {
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+        .loading {
+            color: #fbbf24;
+            font-style: italic;
+        }
+        .error {
+            color: var(--danger-color);
+        }
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            flex-grow: 1;
+            gap: 10px;
+            padding: 10px;
+            height: calc(100vh - 60px);
+        }
+        .panel {
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-header {
+            background-color: rgba(0,0,0,0.2);
+            padding: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">Nexa Elite Command Center</div>
+        <div class="device-info">
+            IMEI: <span id="display-imei" class="loading">Loading...</span> | SIM: <span id="display-sim" class="loading">Loading...</span>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="panel">
+            <div class="panel-header">Live Telemetry & Tracking</div>
+            <iframe id="map-frame" title="Tracking Map"></iframe>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">Configuration & Commands</div>
+            <iframe id="cmd-frame" title="Command Panel"></iframe>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '/api';
+
+        async function loadDeviceConfig() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/device/config`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to load device config: ${response.statusText}`);
+                }
+
+                const config = await response.json();
+                initializeDashboard(config);
+            } catch (error) {
+                console.error('Error loading device configuration:', error);
+                displayError('Failed to load device configuration. Please refresh the page.');
+            }
+        }
+
+        function initializeDashboard(config) {
+            if (!config.deviceIMEI || !config.simNumber || !config.custId || !config.mdsToken) {
+                throw new Error('Invalid configuration received from server');
+            }
+
+            document.getElementById('display-imei').textContent = config.deviceIMEI;
+            document.getElementById('display-imei').classList.remove('loading');
+            
+            document.getElementById('display-sim').textContent = config.simNumber;
+            document.getElementById('display-sim').classList.remove('loading');
+
+            const mapUrl = constructTrackingUrl(config);
+            const cmdUrl = constructCommandUrl(config);
+
+            document.getElementById('map-frame').src = mapUrl;
+            document.getElementById('cmd-frame').src = cmdUrl;
+
+            console.log('Nexa Elite Dashboard initialized successfully');
+        }
+
+        function constructTrackingUrl(config) {
+            const baseUrl = 'https://esa.18gps.net/user/tracking.html';
+            const params = new URLSearchParams({
+                school_id: config.custId,
+                mapType: 'BAIDU',
+                objectid: config.custId,
+                lang: 'en',
+                custid: config.custId,
+                mds: config.mdsToken,
+                token_type: 'session'
+            });
+            return `${baseUrl}?${params.toString()}`;
+        }
+
+        function constructCommandUrl(config) {
+            const baseUrl = 'https://esa.18gps.net/CmdCfg/Cmds/cmd.aspx';
+            const params = new URLSearchParams({
+                custid: config.custId,
+                mds: config.mdsToken,
+                userid: config.userId,
+                username: config.deviceName || 'Nexa Elite',
+                isDealer: 'true',
+                locale: 'en',
+                userType: 'D206',
+                lang: 'en'
+            });
+            return `${baseUrl}?${params.toString()}`;
+        }
+
+        function displayError(message) {
+            document.getElementById('display-imei').textContent = 'Error';
+            document.getElementById('display-imei').classList.add('error');
+            document.getElementById('display-sim').textContent = 'Error';
+            document.getElementById('display-sim').classList.add('error');
+            console.error(message);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadDeviceConfig);
+    </script>
+</body>
+</html>
