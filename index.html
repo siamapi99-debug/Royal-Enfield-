@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexa Elite Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+      width: 100%;
+      padding: 30px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .status {
+      background: #f0f7ff;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+    }
+    .status-label {
+      font-size: 12px;
+      color: #667eea;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .status-value {
+      font-size: 18px;
+      color: #333;
+      margin-top: 5px;
+      font-family: 'Courier New', monospace;
+    }
+    .loading {
+      color: #999;
+      font-size: 14px;
+    }
+    .error {
+      background: #fff5f5;
+      border-left-color: #f56565;
+      color: #c53030;
+    }
+    .error .status-label {
+      color: #f56565;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .info-item {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+    }
+    .info-label {
+      font-size: 12px;
+      color: #999;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    .info-value {
+      font-size: 14px;
+      color: #333;
+      font-family: 'Courier New', monospace;
+      word-break: break-all;
+    }
+    .footer {
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Nexa Elite</h1>
+    <p class="subtitle">Device Control Dashboard</p>
+    
+    <div class="status" id="healthStatus">
+      <div class="status-label">System Status</div>
+      <div class="status-value loading">Checking...</div>
+    </div>
+
+    <div class="info-grid" id="deviceInfo">
+      <div class="info-item">
+        <div class="info-label">IMEI</div>
+        <div class="info-value loading">Loading...</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">SIM</div>
+        <div class="info-value loading">Loading...</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Device</div>
+        <div class="info-value loading">Loading...</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">Customer</div>
+        <div class="info-value loading">Loading...</div>
+      </div>
+    </div>
+
+    <button onclick="refreshStatus()">🔄 Refresh Status</button>
+    <button onclick="openTracking()">📍 Open Tracking</button>
+    <button onclick="openCommands()">⚙️ Open Commands</button>
+
+    <div class="footer">
+      ✓ Secure. ✓ Fast. ✓ Ready.
+    </div>
+  </div>
+
+  <script>
+    async function loadStatus() {
+      try {
+        // Health check
+        const healthRes = await fetch('/api/health');
+        const health = await healthRes.json();
+        
+        // Get config
+        const configRes = await fetch('/api/config');
+        const config = await configRes.json();
+
+        // Update status
+        document.getElementById('healthStatus').innerHTML = `
+          <div class="status-label">✓ System Online</div>
+          <div class="status-value">${health.time}</div>
+        `;
+
+        // Update device info
+        const items = document.querySelectorAll('.info-item');
+        const data = [
+          { label: 'IMEI', value: config.deviceIMEI },
+          { label: 'SIM', value: config.simNumber },
+          { label: 'DEVICE', value: config.deviceName },
+          { label: 'CUSTOMER', value: config.custId.substring(0, 8) + '...' }
+        ];
+        
+        items.forEach((item, i) => {
+          item.innerHTML = `
+            <div class="info-label">${data[i].label}</div>
+            <div class="info-value">${data[i].value}</div>
+          `;
+        });
+
+        // Store config for later use
+        window.config = config;
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('healthStatus').innerHTML = `
+          <div class="status-label">⚠ Error Loading</div>
+          <div class="status-value error" style="color: #c53030;">${error.message}</div>
+        `;
+        document.getElementById('healthStatus').classList.add('error');
+      }
+    }
+
+    function refreshStatus() {
+      loadStatus();
+    }
+
+    function openTracking() {
+      if (window.config) {
+        const url = `https://esa.18gps.net/user/tracking.html?school_id=${window.config.custId}&objectid=${window.config.custId}&custid=${window.config.custId}&mds=${window.config.mdsToken}&lang=en`;
+        window.open(url, '_blank');
+      }
+    }
+
+    function openCommands() {
+      if (window.config) {
+        const url = `https://esa.18gps.net/CmdCfg/Cmds/cmd.aspx?custid=${window.config.custId}&mds=${window.config.mdsToken}&userid=${window.config.userId}&username=${encodeURIComponent(window.config.deviceName)}&lang=en`;
+        window.open(url, '_blank');
+      }
+    }
+
+    // Load on start
+    loadStatus();
+  </script>
+</body>
+</html>
