@@ -1,0 +1,31 @@
+# Environment Variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Dependencies
+node_modules/
+/dist/
+/build/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Configuration files with sensitive data
+config.local.js
+secrets.json
+credentials.json
